@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CKC — Catalina Command Center</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #07070f;
+  --bg2: #0c0c1a;
+  --bg3: #11112000;
+  --card: #111120;
+  --card2: #16162a;
+  --accent: #7c3aed;
+  --accent2: #a855f7;
+  --glow: rgba(124,58,237,0.25);
+  --txt: #f0f0ff;
+  --txt2: #8888aa;
+  --txt3: #55556a;
+  --border: #1c1c30;
+  --border2: #2a1f55;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --sidebar-w: 220px;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+html,body{height:100%;background:var(--bg);color:var(--txt);overflow:hidden}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;width:100vw}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;z-index:10;
+}
+.sidebar::after{
+  content:'';position:absolute;top:0;right:0;width:1px;height:100%;
+  background:linear-gradient(180deg,transparent,var(--accent),transparent);
+  opacity:.4;
+}
+.logo-wrap{
+  padding:24px 20px 20px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.logo{
+  font-size:28px;font-weight:900;letter-spacing:4px;
+  background:linear-gradient(135deg,#fff 30%,var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;
+}
+.logo-sub{font-size:9px;color:var(--txt3);letter-spacing:3px;margin-top:4px;text-transform:uppercase}
+
+.nav{flex:1;overflow-y:auto;padding:12px 0}
+.nav-section{font-size:9px;color:var(--txt3);letter-spacing:2px;text-transform:uppercase;padding:16px 20px 6px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 20px;cursor:pointer;
+  color:var(--txt2);font-size:13px;font-weight:500;
+  border-left:3px solid transparent;
+  transition:.15s;position:relative;
+}
+.nav-item:hover{color:var(--txt);background:rgba(124,58,237,.08);border-left-color:var(--accent)}
+.nav-item.active{color:var(--accent2);background:rgba(124,58,237,.13);border-left-color:var(--accent)}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;background:var(--accent);color:#fff;
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;
+}
+
+.sidebar-footer{
+  padding:16px 20px;border-top:1px solid var(--border);
+  font-size:11px;color:var(--txt3);flex-shrink:0;
+}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;box-shadow:0 0 6px var(--green)}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.topbar{
+  height:56px;min-height:56px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0;
+}
+.topbar-title{font-size:17px;font-weight:700;flex:1}
+.topbar-title span{color:var(--accent2)}
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.btn{
+  padding:7px 16px;border-radius:8px;border:none;cursor:pointer;
+  font-size:12px;font-weight:600;transition:.15s;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2);box-shadow:0 0 16px var(--glow)}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-danger{background:var(--red);color:#fff}
+
+.content-area{flex:1;overflow-y:auto;padding:28px}
+
+/* ── SECTIONS ── */
+.section{display:none}
+.section.active{display:block}
+
+/* ── CARDS ── */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g12{grid-template-columns:1fr 2fr}
+.g21{grid-template-columns:2fr 1fr}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-hover{transition:.15s;cursor:pointer}
+.card-hover:hover{border-color:var(--border2);box-shadow:0 0 20px var(--glow)}
+.card-title{font-size:12px;color:var(--txt2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-weight:600}
+.card-value{font-size:32px;font-weight:800;line-height:1}
+.card-value.accent{color:var(--accent2)}
+.card-meta{font-size:12px;color:var(--txt3);margin-top:6px}
+.card-trend-up{color:var(--green);font-size:12px;margin-top:4px}
+.card-trend-down{color:var(--red);font-size:12px;margin-top:4px}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-title{font-size:20px;font-weight:800}
+.section-title span{color:var(--accent2)}
+
+/* ── STAT BAR ── */
+.stat-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  background:var(--card2);color:var(--txt2);font-size:11px;
+  font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  padding:11px 14px;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(124,58,237,.05)}
+td{padding:11px 14px;color:var(--txt);vertical-align:middle}
+td.muted{color:var(--txt2);font-size:12px}
+
+/* ── BADGES / STATUS ── */
+.badge{
+  display:inline-block;padding:3px 9px;border-radius:20px;
+  font-size:11px;font-weight:600;white-space:nowrap;
+}
+.badge-nuevo{background:rgba(59,130,246,.15);color:#60a5fa}
+.badge-contactado{background:rgba(245,158,11,.15);color:#fbbf24}
+.badge-respondio{background:rgba(168,85,247,.15);color:#c084fc}
+.badge-cerrado{background:rgba(16,185,129,.15);color:#34d399}
+.badge-perdido{background:rgba(239,68,68,.15);color:#f87171}
+.badge-active{background:rgba(16,185,129,.15);color:#34d399}
+.badge-pause{background:rgba(245,158,11,.15);color:#fbbf24}
+
+/* ── KANBAN ── */
+.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
+.kanban-col{
+  min-width:220px;max-width:220px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  display:flex;flex-direction:column;
+}
+.kanban-col-header{
+  padding:12px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.kanban-col-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.kanban-count{
+  background:var(--card2);color:var(--txt2);
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;
+}
+.kanban-cards{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:80px}
+.kanban-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  padding:12px;cursor:grab;transition:.15s;
+}
+.kanban-card:hover{border-color:var(--accent);box-shadow:0 0 12px var(--glow)}
+.kanban-card.dragging{opacity:.4;cursor:grabbing}
+.kanban-col.drag-over{border-color:var(--accent);background:rgba(124,58,237,.05)}
+.k-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.k-nicho{font-size:11px;color:var(--accent2);margin-bottom:6px}
+.k-meta{font-size:11px;color:var(--txt3)}
+.k-notes{font-size:11px;color:var(--txt2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-style:italic}
+.kanban-add{
+  margin:8px;padding:7px;border-radius:6px;border:1px dashed var(--border);
+  background:transparent;color:var(--txt3);font-size:12px;cursor:pointer;
+  transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.kanban-add:hover{border-color:var(--accent);color:var(--accent2)}
+
+/* ── CALENDAR ── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-nav{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--txt);cursor:pointer;font-size:13px}
+.cal-nav:hover{border-color:var(--accent)}
+.cal-month-title{font-size:16px;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-name{text-align:center;font-size:11px;color:var(--txt3);padding:6px 0;font-weight:600;letter-spacing:1px}
+.cal-day{
+  min-height:72px;background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:6px;position:relative;cursor:pointer;transition:.1s;
+}
+.cal-day:hover{border-color:var(--accent)}
+.cal-day.today{border-color:var(--accent);box-shadow:0 0 10px var(--glow)}
+.cal-day.other-month{opacity:.3}
+.cal-day-num{font-size:12px;font-weight:600;margin-bottom:4px}
+.cal-day.today .cal-day-num{
+  background:var(--accent);color:#fff;
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+}
+.cal-event{
+  font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;
+  background:rgba(124,58,237,.25);color:var(--accent2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ── MODALS ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:100;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--card);border:1px solid var(--border2);border-radius:16px;
+  padding:28px;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;
+  box-shadow:0 0 40px var(--glow);
+}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--txt2);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block}
+.form-input,.form-select,.form-textarea{
+  width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  color:var(--txt);font-size:13px;padding:9px 12px;outline:none;transition:.15s;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 8px var(--glow)}
+.form-textarea{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+select option{background:var(--bg2)}
+
+/* ── NOTIFICATIONS ── */
+.notif-item{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:14px;margin-bottom:10px;transition:.1s;
+}
+.notif-item:hover{border-color:var(--border2)}
+.notif-icon{
+  width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.notif-icon.warn{background:rgba(245,158,11,.15)}
+.notif-icon.info{background:rgba(59,130,246,.15)}
+.notif-icon.success{background:rgba(16,185,129,.15)}
+.notif-icon.danger{background:rgba(239,68,68,.15)}
+.notif-body{flex:1}
+.notif-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.notif-msg{font-size:12px;color:var(--txt2)}
+.notif-time{font-size:11px;color:var(--txt3);margin-top:3px}
+.notif-item.unread{border-left:3px solid var(--accent)}
+
+/* ── CONFIG ── */
+.config-section{margin-bottom:28px}
+.config-section-title{font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.config-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;
+}
+.config-row:last-child{border-bottom:none}
+.toggle{
+  width:40px;height:22px;background:var(--border);border-radius:11px;
+  cursor:pointer;position:relative;transition:.2s;flex-shrink:0;
+}
+.toggle.on{background:var(--accent)}
+.toggle::after{
+  content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;
+  background:#fff;border-radius:50%;transition:.2s;
+}
+.toggle.on::after{left:21px}
+
+/* ── ANALYTICS ── */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.chart-title{font-size:13px;font-weight:700;margin-bottom:16px;color:var(--txt2)}
+
+/* ── HUB ALERTS ── */
+.alert-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;border-radius:10px;margin-bottom:8px;
+  border:1px solid var(--border);background:var(--card2);
+}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── CLIENT CARDS ── */
+.client-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;
+  transition:.15s;
+}
+.client-card:hover{border-color:var(--accent2);box-shadow:0 0 16px var(--glow)}
+.client-avatar{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:800;margin-bottom:12px;
+}
+.client-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.client-nicho{font-size:12px;color:var(--accent2);margin-bottom:8px}
+.client-meta{font-size:11px;color:var(--txt3)}
+.client-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.client-tag{background:rgba(124,58,237,.15);color:var(--accent2);font-size:10px;padding:2px 8px;border-radius:20px}
+
+/* ── REPORT ── */
+.report-option{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:16px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:14px;
+}
+.report-option:hover{border-color:var(--accent)}
+.report-icon{font-size:24px}
+.report-title{font-size:13px;font-weight:700}
+.report-desc{font-size:11px;color:var(--txt3);margin-top:2px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--txt3)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-text{font-size:14px}
+
+/* ── ADS IFRAME ── */
+.iframe-wrap{border-radius:12px;overflow:hidden;border:1px solid var(--border);height:calc(100vh - 180px)}
+.iframe-wrap iframe{width:100%;height:100%;border:none;background:#fff}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--border);margin:20px 0}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-accent{background:rgba(124,58,237,.2);color:var(--accent2);border:1px solid var(--border2)}
+.flex{display:flex;align-items:center}
+.gap8{gap:8px}
+.gap16{gap:16px}
+.mt8{margin-top:8px}
+.mt16{margin-top:16px}
+.mt20{margin-top:20px}
+.mb16{margin-bottom:16px}
+.text-right{text-align:right}
+.text-muted{color:var(--txt2);font-size:12px}
+.fw7{font-weight:700}
+
+/* ── SCROLLABLE CONTENT ── */
+.scroll-x{overflow-x:auto}
+
+@media(max-width:900px){
+  .sidebar{position:fixed;left:-220px;transition:.2s;z-index:50}
+  .sidebar.open{left:0}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="logo-wrap">
+    <div class="logo">CKC</div>
+    <div class="logo-sub">Command Center</div>
+  </div>
+  <div class="nav" id="nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-section="hub"><span class="icon">⚡</span> Hub Central <span class="nav-badge" id="badge-hub">3</span></div>
+    <div class="nav-item" data-section="ads"><span class="icon">📊</span> Agente Ads</div>
+    <div class="nav-item" data-section="prospecting"><span class="icon">🎯</span> Prospección <span class="nav-badge" id="badge-pros">0</span></div>
+    <div class="nav-item" data-section="crm"><span class="icon">🔁</span> CRM Pipeline</div>
+    <div class="nav-section">Gestión</div>
+    <div class="nav-item" data-section="clients"><span class="icon">👥</span> Clientes</div>
+    <div class="nav-item" data-section="agenda"><span class="icon">📅</span> Agenda</div>
+    <div class="nav-item" data-section="reports"><span class="icon">📋</span> Reportes</div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-section="notifications"><span class="icon">🔔</span> Notificaciones <span class="nav-badge" id="badge-notif">5</span></div>
+    <div class="nav-item" data-section="analytics"><span class="icon">📈</span> Analytics</div>
+    <div class="nav-item" data-section="config"><span class="icon">⚙️</span> Configuración</div>
+  </div>
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>Sistemas activos
+  </div>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Hub <span>Central</span></div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" id="refresh-btn" onclick="refreshSection()">↻ Refresh</button>
+      <button class="btn btn-primary btn-sm" id="action-btn" onclick="primaryAction()">+ Nuevo Lead</button>
+    </div>
+  </div>
+
+  <div class="content-area" id="content-area">
+
+    <!-- ══════════ HUB CENTRAL ══════════ -->
+    <div class="section active" id="section-hub">
+      <div class="section-header">
+        <div class="section-title">Hub <span>Central</span></div>
+        <span class="text-muted" id="hub-updated">Actualizando...</span>
+      </div>
+      <div class="grid g4 mb16" id="hub-stats"></div>
+      <div class="grid g21">
+        <div>
+          <div class="card mb16" id="hub-alerts-card">
+            <div class="card-title">⚠️ Alertas Activas</div>
+            <div id="hub-alerts"></div>
+          </div>
+          <div class="card" id="hub-leads-card">
+            <div class="card-title">🎯 Leads del Día</div>
+            <div id="hub-leads-today"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb16" id="hub-tasks-card">
+            <div class="card-title">✅ Tareas Pendientes</div>
+            <div id="hub-tasks"></div>
+          </div>
+          <div class="card" id="hub-notifs-card">
+            <div class="card-title">🔔 Notificaciones Recientes</div>
+            <div id="hub-notifs-preview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ AGENTE ADS ══════════ -->
+    <div class="section" id="section-ads">
+      <div class="section-header">
+        <div class="section-title">Agente <span>Ads</span></div>
+        <a href="https://web-production-385c9.up.railway.app" target="_blank" class="btn btn-ghost btn-sm">↗ Abrir en nueva pestaña</a>
+      </div>
+      <div class="iframe-wrap">
+        <iframe src="https://web-production-385c9.up.railway.app" id="ads-iframe" title="Agente Ads Dashboard"></iframe>
+      </div>
+    </div>
+
+    <!-- ══════════ PROSPECCIÓN ══════════ -->
+    <div class="section" id="section-prospecting">
+      <div class="section-header">
+        <div class="section-title">Agente <span>Prospección</span></div>
+        <div class="flex gap8">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+            📂 Importar CSV
+            <input type="file" accept=".csv" style="display:none" onchange="importCSV(this)">
+          </label>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-lead')">+ Agregar Lead</button>
+        </div>
+      </div>
+      <div class="grid g4 mb16" id="pros-metrics"></div>
+      <div class="card mt16">
+        <div class="flex gap16 mb16" style="flex-wrap:wrap">
+          <input class="form-input" style="max-width:220px;margin-bottom:0" type="text" id="search-leads" placeholder="🔍 Buscar lead..." oninput="renderLeadsTable()">
+          <select class="form-select" style="max-width:160px" id="filter-status" onchange="renderLeadsTable()">
+            <option value="">Todos los estados</option>
+            <option>Nuevo</option><option>Contactado</option><option>Respondió</option><option>Cerrado</option><option>Perdido</option>
+          </select>
+          <select class="form-select" style="max-width:160px" id="filter-nicho" onchange="renderLeadsTable()">
+            <option value="">Todos los nichos</option>
+          </select>
+        </div>
+        <div class="table-wrap" id="leads-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ CRM ══════════ -->
+    <div class="section" id="section-crm">
+      <div class="section-header">
+        <div class="section-title">CRM <span>Pipeline</span></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-lead')">+ Agregar Lead</button>
+      </div>
+      <div class="scroll-x">
+        <div class="kanban" id="kanban-board"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ CLIENTES ══════════ -->
+    <div class="section" id="section-clients">
+      <div class="section-header">
+        <div class="section-title">Gestión de <span>Clientes</span></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-client')">+ Nuevo Cliente</button>
+      </div>
+      <div class="grid g3" id="clients-grid"></div>
+    </div>
+
+    <!-- ══════════ AGENDA ══════════ -->
+    <div class="section" id="section-agenda">
+      <div class="section-header">
+        <div class="section-title">Agenda <span>& Calendario</span></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-event')">+ Nuevo Evento</button>
+      </div>
+      <div class="grid g21">
+        <div class="card">
+          <div class="cal-header">
+            <button class="cal-nav" onclick="calNav(-1)">◀</button>
+            <div class="cal-month-title" id="cal-title"></div>
+            <button class="cal-nav" onclick="calNav(1)">▶</button>
+          </div>
+          <div class="cal-grid" id="cal-day-names"></div>
+          <div class="cal-grid mt8" id="cal-grid" style="row-gap:6px"></div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">📌 Próximos eventos</div>
+            <div id="upcoming-events"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ REPORTES ══════════ -->
+    <div class="section" id="section-reports">
+      <div class="section-header">
+        <div class="section-title">Generador de <span>Reportes</span></div>
+      </div>
+      <div class="grid g3 mb16" id="report-options"></div>
+      <div class="card" id="report-preview" style="display:none">
+        <div class="flex gap16 mb16" style="justify-content:space-between;align-items:center">
+          <div class="fw7">Vista Previa del Reporte</div>
+          <div class="flex gap8">
+            <button class="btn btn-ghost btn-sm" onclick="printReport()">🖨️ Imprimir</button>
+            <button class="btn btn-primary btn-sm" onclick="exportReport()">⬇️ Exportar HTML</button>
+          </div>
+        </div>
+        <div id="report-content"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ NOTIFICACIONES ══════════ -->
+    <div class="section" id="section-notifications">
+      <div class="section-header">
+        <div class="section-title">Centro de <span>Notificaciones</span></div>
+        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">✓ Marcar todo leído</button>
+      </div>
+      <div id="notifications-list"></div>
+    </div>
+
+    <!-- ══════════ ANALYTICS ══════════ -->
+    <div class="section" id="section-analytics">
+      <div class="section-header">
+        <div class="section-title">Analytics <span>& Métricas</span></div>
+      </div>
+      <div class="grid g2 mb16">
+        <div class="chart-card">
+          <div class="chart-title">Leads por Nicho</div>
+          <canvas id="chart-nicho" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Conversión por Mes</div>
+          <canvas id="chart-month" height="200"></canvas>
+        </div>
+      </div>
+      <div class="grid g3">
+        <div class="chart-card">
+          <div class="chart-title">Estado del Pipeline</div>
+          <canvas id="chart-pipeline" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Servicios más Demandados</div>
+          <canvas id="chart-services" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Leads por País</div>
+          <canvas id="chart-country" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ CONFIGURACIÓN ══════════ -->
+    <div class="section" id="section-config">
+      <div class="section-header">
+        <div class="section-title">Sistema <span>Configuración</span></div>
+        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 Guardar cambios</button>
+      </div>
+      <div class="grid g2">
+        <div>
+          <div class="card mb16">
+            <div class="config-section-title">🔗 Conexiones API</div>
+            <div class="form-group">
+              <label class="form-label">URL Agente Ads</label>
+              <input class="form-input" id="cfg-ads-url" value="https://web-production-385c9.up.railway.app">
+            </div>
+            <div class="form-group">
+              <label class="form-label">URL Endpoint Clientes</label>
+              <input class="form-input" id="cfg-clientes-url" value="https://web-production-385c9.up.railway.app/clientes">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Token API (opcional)</label>
+              <input class="form-input" id="cfg-token" type="password" placeholder="sk-...">
+            </div>
+          </div>
+          <div class="card">
+            <div class="config-section-title">⚠️ Umbrales de Alerta</div>
+            <div class="form-group">
+              <label class="form-label">Leads sin contactar (días)</label>
+              <input class="form-input" id="cfg-threshold-days" type="number" value="3">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Campañas bajo ROI (%)</label>
+              <input class="form-input" id="cfg-threshold-roi" type="number" value="15">
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb16">
+            <div class="config-section-title">🔔 Notificaciones</div>
+            <div class="config-row"><span>Alertas de campañas</span><div class="toggle on" onclick="this.classList.toggle('on')" id="tog-campaigns"></div></div>
+            <div class="config-row"><span>Leads sin respuesta</span><div class="toggle on" onclick="this.classList.toggle('on')" id="tog-leads"></div></div>
+            <div class="config-row"><span>Recordatorios de agenda</span><div class="toggle on" onclick="this.classList.toggle('on')" id="tog-agenda"></div></div>
+            <div class="config-row"><span>Reportes semanales</span><div class="toggle" onclick="this.classList.toggle('on')" id="tog-reports"></div></div>
+          </div>
+          <div class="card">
+            <div class="config-section-title">💾 Estado del Sistema</div>
+            <div id="system-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════════ MODALS ══════════ -->
+<div class="modal-overlay" id="modal-lead">
+  <div class="modal">
+    <div class="modal-title">Nuevo Lead</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="l-name" placeholder="Nombre completo"></div>
+      <div class="form-group"><label class="form-label">Nicho *</label><input class="form-input" id="l-nicho" placeholder="Ej: Odontología"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Ciudad</label><input class="form-input" id="l-city" placeholder="Ciudad"></div>
+      <div class="form-group"><label class="form-label">País</label><input class="form-input" id="l-country" placeholder="País"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="l-phone" placeholder="+1 ..."></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="l-email" type="email" placeholder="email@..."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Servicio</label><input class="form-input" id="l-service" placeholder="Servicio de interés"></div>
+      <div class="form-group"><label class="form-label">Estado</label>
+        <select class="form-select" id="l-status">
+          <option>Nuevo</option><option>Contactado</option><option>Respondió</option><option>Cerrado</option><option>Perdido</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="l-notes" placeholder="Notas sobre el lead..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lead')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLead()">💾 Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-title">Nuevo Cliente</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre / Empresa *</label><input class="form-input" id="c-name" placeholder="Nombre del cliente"></div>
+      <div class="form-group"><label class="form-label">Nicho</label><input class="form-input" id="c-nicho" placeholder="Sector"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="c-email" type="email"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="c-phone"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Servicios Contratados</label><input class="form-input" id="c-services" placeholder="Ej: Meta Ads, Google Ads"></div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="c-notes"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-client')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveClient()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-event">
+  <div class="modal">
+    <div class="modal-title">Nuevo Evento</div>
+    <div class="form-group"><label class="form-label">Título *</label><input class="form-input" id="e-title" placeholder="Título del evento"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="e-date" type="date"></div>
+      <div class="form-group"><label class="form-label">Hora</label><input class="form-input" id="e-time" type="time" value="10:00"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="e-type">
+          <option>Optimización</option><option>Follow-up</option><option>Entrega</option><option>Reunión</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Cliente</label>
+        <select class="form-select" id="e-client"><option value="">Sin cliente</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="e-notes"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEvent()">💾 Guardar Evento</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-client-detail">
+  <div class="modal" style="width:600px">
+    <div id="client-detail-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-client-detail')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <div class="modal-title">Nueva Tarea</div>
+    <div class="form-group"><label class="form-label">Tarea *</label><input class="form-input" id="t-title" placeholder="Descripción de la tarea"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Prioridad</label>
+        <select class="form-select" id="t-priority"><option>Alta</option><option>Media</option><option>Baja</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha límite</label><input class="form-input" id="t-due" type="date"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-task')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTask()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCRIPTS ══════════ -->
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+const STATE = {
+  section: 'hub',
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+  charts: {},
+  apiClientes: [],
+  editingLead: null,
+};
+
+const KANBAN_COLS = ['Nuevo','Contactado','Respondió','Cerrado','Perdido'];
+const COL_COLORS = {
+  'Nuevo':'#3b82f6','Contactado':'#f59e0b','Respondió':'#a855f7','Cerrado':'#10b981','Perdido':'#ef4444'
+};
+
+// ════════════════════════════════════════
+// PERSISTENCE
+// ════════════════════════════════════════
+function load(key, def) {
+  try { const v = localStorage.getItem('ckc_'+key); return v ? JSON.parse(v) : def; } catch{ return def; }
+}
+function save(key, val) {
+  try { localStorage.setItem('ckc_'+key, JSON.stringify(val)); } catch(e){}
+}
+
+let leads = load('leads', [
+  {id:1,name:'María González',nicho:'Odontología',city:'Madrid',country:'España',phone:'+34 600 000 001',email:'maria@clinica.es',service:'Meta Ads',status:'Respondió',lastContact:'2026-03-18',notes:'Interesada en campaña de implantes',created:'2026-03-15'},
+  {id:2,name:'Carlos Ruiz',nicho:'Fitness',city:'Bogotá',country:'Colombia',phone:'+57 300 000 002',email:'carlos@gym.co',service:'Google Ads',status:'Contactado',lastContact:'2026-03-17',notes:'Tiene gym con 3 sedes',created:'2026-03-14'},
+  {id:3,name:'Ana Torres',nicho:'Inmobiliaria',city:'Ciudad de México',country:'México',phone:'+52 55 0000 0003',email:'ana@inmuebles.mx',service:'Meta Ads',status:'Nuevo',lastContact:'',notes:'',created:'2026-03-19'},
+  {id:4,name:'Luis Fernández',nicho:'Restaurante',city:'Buenos Aires',country:'Argentina',phone:'+54 11 0000 0004',email:'luis@resto.ar',service:'TikTok Ads',status:'Cerrado',lastContact:'2026-03-10',notes:'Cerrado con paquete premium',created:'2026-03-05'},
+  {id:5,name:'Sofia Méndez',nicho:'Clínica Estética',city:'Lima',country:'Perú',phone:'+51 900 000 005',email:'sofia@estetica.pe',service:'Meta Ads',status:'Perdido',lastContact:'2026-03-12',notes:'Decidió con otra agencia',created:'2026-03-08'},
+  {id:6,name:'Diego Morales',nicho:'Academia Online',city:'Santiago',country:'Chile',phone:'+56 9 0000 0006',email:'diego@academia.cl',service:'Google Ads',status:'Respondió',lastContact:'2026-03-19',notes:'Quiere lanzar curso de fotografía',created:'2026-03-16'},
+]);
+let clients = load('clients', [
+  {id:1,name:'Clínica Dental Smile',nicho:'Odontología',email:'hola@smile.es',phone:'+34 600 111 222',services:'Meta Ads, Google Ads',notes:'Cliente desde enero. ROI promedio 4x.',created:'2026-01-10',history:[]},
+  {id:2,name:'FitLife Gym',nicho:'Fitness',email:'contacto@fitlife.co',phone:'+57 300 111 333',services:'Meta Ads',notes:'2 campañas activas. Buen ROAS.',created:'2026-02-01',history:[]},
+  {id:3,name:'Inmuebles Pro MX',nicho:'Inmobiliaria',email:'info@inmueblespro.mx',phone:'+52 55 1111 2222',services:'Google Ads, Landing Pages',notes:'Proyecto en expansión.',created:'2026-03-01',history:[]},
+]);
+let events = load('events', [
+  {id:1,title:'Optimización campaña Smile',date:'2026-03-22',time:'10:00',type:'Optimización',clientId:1,notes:'Revisar CPC y creativos'},
+  {id:2,title:'Follow-up FitLife',date:'2026-03-25',time:'15:00',type:'Follow-up',clientId:2,notes:''},
+  {id:3,title:'Entrega reporte mensual',date:'2026-03-31',time:'18:00',type:'Entrega',clientId:0,notes:''},
+]);
+let tasks = load('tasks', [
+  {id:1,title:'Revisar campañas activas',priority:'Alta',due:'2026-03-21',done:false},
+  {id:2,title:'Enviar reporte a Smile',priority:'Alta',due:'2026-03-22',done:false},
+  {id:3,title:'Crear creativos para FitLife',priority:'Media',due:'2026-03-25',done:false},
+  {id:4,title:'Actualizar leads CSV',priority:'Baja',due:'2026-03-28',done:true},
+]);
+let notifications = load('notifications', [
+  {id:1,type:'danger',icon:'🚨',title:'Campaña con bajo rendimiento',msg:'FitLife Gym — ROAS por debajo del umbral (1.5x)',time:'Hace 30 min',read:false},
+  {id:2,type:'warn',icon:'⚠️',title:'Lead sin contactar',msg:'Ana Torres lleva 1 día sin respuesta',time:'Hace 2 horas',read:false},
+  {id:3,type:'info',icon:'📊',title:'Reporte semanal disponible',msg:'Semana del 10 al 16 de marzo listo para exportar',time:'Hace 5 horas',read:false},
+  {id:4,type:'success',icon:'✅',title:'Lead cerrado',msg:'Luis Fernández — Paquete premium confirmado',time:'Hace 1 día',read:false},
+  {id:5,type:'info',icon:'📅',title:'Recordatorio de agenda',msg:'Optimización campaña Smile — mañana 10:00',time:'Hace 1 día',read:true},
+]);
+let nextId = load('nextId', {leads:7, clients:4, events:4, tasks:5, notifs:6});
+
+function persistAll() {
+  save('leads', leads);
+  save('clients', clients);
+  save('events', events);
+  save('tasks', tasks);
+  save('notifications', notifications);
+  save('nextId', nextId);
+}
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+const SECTION_TITLES = {
+  hub: ['Hub','Central'],ads: ['Agente','Ads'],
+  prospecting: ['Agente','Prospección'],crm: ['CRM','Pipeline'],
+  clients: ['Gestión de','Clientes'],agenda: ['Agenda','& Calendario'],
+  reports: ['Generador de','Reportes'],notifications: ['Centro de','Notificaciones'],
+  analytics: ['Analytics','& Métricas'],config: ['Sistema','Configuración'],
+};
+const SECTION_BTNS = {
+  hub: {btn:'+ Nueva Tarea', fn:'openModal("modal-task")'},
+  prospecting: {btn:'+ Agregar Lead', fn:'openModal("modal-lead")'},
+  crm: {btn:'+ Agregar Lead', fn:'openModal("modal-lead")'},
+  clients: {btn:'+ Nuevo Cliente', fn:'openModal("modal-client")'},
+  agenda: {btn:'+ Nuevo Evento', fn:'openModal("modal-event")'},
+  ads: {btn:'↗ Abrir App', fn:'window.open("https://web-production-385c9.up.railway.app","_blank")'},
+};
+
+document.getElementById('nav').addEventListener('click', e => {
+  const item = e.target.closest('.nav-item');
+  if (!item) return;
+  navigate(item.dataset.section);
+});
+
+function navigate(s) {
+  STATE.section = s;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.section === s);
+  });
+  document.querySelectorAll('.section').forEach(el => {
+    el.classList.toggle('active', el.id === 'section-'+s);
+  });
+  const t = SECTION_TITLES[s] || [s,''];
+  document.getElementById('topbar-title').innerHTML = `${t[0]} <span>${t[1]}</span>`;
+  const b = SECTION_BTNS[s];
+  const btn = document.getElementById('action-btn');
+  if (b) { btn.textContent = b.btn; btn.setAttribute('onclick', b.fn); btn.style.display=''; }
+  else { btn.style.display='none'; }
+  renderSection(s);
+  updateBadges();
+}
+
+function renderSection(s) {
+  if (s==='hub') renderHub();
+  if (s==='prospecting') { renderProsMetrics(); renderLeadsTable(); renderNichoFilter(); }
+  if (s==='crm') renderKanban();
+  if (s==='clients') renderClients();
+  if (s==='agenda') renderCalendar();
+  if (s==='reports') renderReports();
+  if (s==='notifications') renderNotifications();
+  if (s==='analytics') setTimeout(renderAnalytics, 50);
+  if (s==='config') renderConfig();
+}
+
+function refreshSection() { renderSection(STATE.section); if(STATE.section==='hub') fetchClientes(); }
+function primaryAction() { /* overridden by nav */ }
+
+// ════════════════════════════════════════
+// BADGES
+// ════════════════════════════════════════
+function updateBadges() {
+  const unread = notifications.filter(n=>!n.read).length;
+  document.getElementById('badge-notif').textContent = unread;
+  document.getElementById('badge-hub').textContent = tasks.filter(t=>!t.done).length;
+  document.getElementById('badge-pros').textContent = leads.filter(l=>l.status==='Nuevo').length;
+}
+
+// ════════════════════════════════════════
+// HUB CENTRAL
+// ════════════════════════════════════════
+async function fetchClientes() {
+  try {
+    const res = await fetch('https://web-production-385c9.up.railway.app/clientes');
+    const data = await res.json();
+    STATE.apiClientes = Array.isArray(data) ? data : (data.clientes || data.data || []);
+    document.getElementById('hub-updated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es');
+  } catch(e) {
+    document.getElementById('hub-updated').textContent = '⚠️ Sin conexión API';
+    STATE.apiClientes = [];
+  }
+  renderHub();
+}
+
+function renderHub() {
+  const today = new Date().toISOString().split('T')[0];
+  const pendingTasks = tasks.filter(t=>!t.done);
+  const todayLeads = leads.filter(l=>l.created===today);
+  const newLeads = leads.filter(l=>l.status==='Nuevo');
+  const unread = notifications.filter(n=>!n.read);
+  const apiCount = STATE.apiClientes.length;
+
+  // stats
+  document.getElementById('hub-stats').innerHTML = `
+    ${statCard('⚡','Leads Activos', leads.filter(l=>l.status!=='Cerrado'&&l.status!=='Perdido').length, 'leads en pipeline','accent')}
+    ${statCard('✅','Tareas Pendientes', pendingTasks.length, `${tasks.filter(t=>t.done).length} completadas`,'warn')}
+    ${statCard('🔔','Notificaciones', unread.length, 'sin leer','red')}
+    ${statCard('👥','Clientes API', apiCount || clients.length, apiCount ? 'desde API' : 'locales','green')}
+  `;
+
+  // alerts
+  const alerts = [];
+  const stale = leads.filter(l=>l.status==='Contactado'&&l.lastContact&&daysSince(l.lastContact)>=3);
+  stale.forEach(l=>alerts.push({color:'var(--yellow)',msg:`<b>${l.name}</b> — sin respuesta hace ${daysSince(l.lastContact)} días`}));
+  notifications.filter(n=>!n.read&&n.type==='danger').forEach(n=>alerts.push({color:'var(--red)',msg:n.title+': '+n.msg}));
+  document.getElementById('hub-alerts').innerHTML = alerts.length
+    ? alerts.map(a=>`<div class="alert-item"><div class="alert-dot" style="background:${a.color}"></div><div style="font-size:13px">${a.msg}</div></div>`).join('')
+    : '<div class="empty" style="padding:16px"><div class="empty-icon">✅</div><div class="empty-text">Sin alertas activas</div></div>';
+
+  // leads today
+  document.getElementById('hub-leads-today').innerHTML = todayLeads.length
+    ? `<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Nicho</th><th>Estado</th></tr></thead><tbody>${
+        todayLeads.map(l=>`<tr><td>${l.name}</td><td>${l.nicho}</td><td>${badgeHtml(l.status)}</td></tr>`).join('')
+      }</tbody></table></div>`
+    : `<div class="text-muted" style="padding:8px 0">No hay leads nuevos hoy</div>`;
+
+  // tasks
+  document.getElementById('hub-tasks').innerHTML = pendingTasks.length
+    ? pendingTasks.slice(0,5).map(t=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <input type="checkbox" style="accent-color:var(--accent);cursor:pointer" onchange="toggleTask(${t.id})">
+          <div style="flex:1">
+            <div style="font-size:13px">${t.title}</div>
+            ${t.due?`<div style="font-size:11px;color:var(--txt3)">Límite: ${t.due}</div>`:''}
+          </div>
+          <span class="badge badge-${t.priority==='Alta'?'perdido':t.priority==='Media'?'contactado':'nuevo'}">${t.priority}</span>
+        </div>`).join('')
+    : '<div class="text-muted" style="padding:8px 0">Sin tareas pendientes 🎉</div>';
+
+  // notifs preview
+  document.getElementById('hub-notifs-preview').innerHTML = unread.slice(0,3).map(n=>`
+    <div class="notif-item unread" style="margin-bottom:8px;padding:10px">
+      <div class="notif-icon ${n.type}">${n.icon}</div>
+      <div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-msg">${n.msg}</div></div>
+    </div>`).join('') || '<div class="text-muted" style="padding:8px 0">Sin notificaciones nuevas</div>';
+}
+
+function statCard(icon,title,val,meta,col) {
+  const colorMap={accent:'var(--accent2)',warn:'var(--yellow)',red:'var(--red)',green:'var(--green)'};
+  return `<div class="card card-hover">
+    <div class="card-title">${icon} ${title}</div>
+    <div class="card-value" style="color:${colorMap[col]||'var(--txt)'}">${val}</div>
+    <div class="card-meta">${meta}</div>
+  </div>`;
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return 999;
+  return Math.floor((new Date()-new Date(dateStr))/86400000);
+}
+
+function toggleTask(id) {
+  const t = tasks.find(t=>t.id===id);
+  if (t) { t.done=!t.done; persistAll(); renderHub(); updateBadges(); }
+}
+
+// ════════════════════════════════════════
+// PROSPECCIÓN
+// ════════════════════════════════════════
+function renderNichoFilter() {
+  const nichos = [...new Set(leads.map(l=>l.nicho).filter(Boolean))];
+  const sel = document.getElementById('filter-nicho');
+  sel.innerHTML = '<option value="">Todos los nichos</option>' +
+    nichos.map(n=>`<option>${n}</option>`).join('');
+}
+
+function renderLeadsTable() {
+  const q = (document.getElementById('search-leads')?.value||'').toLowerCase();
+  const st = document.getElementById('filter-status')?.value||'';
+  const ni = document.getElementById('filter-nicho')?.value||'';
+  const filtered = leads.filter(l =>
+    (!q || l.name.toLowerCase().includes(q) || l.nicho.toLowerCase().includes(q) || (l.email||'').toLowerCase().includes(q)) &&
+    (!st || l.status===st) &&
+    (!ni || l.nicho===ni)
+  );
+  const html = filtered.length ? `
+    <table><thead><tr>
+      <th>Nombre</th><th>Nicho</th><th>Ciudad</th><th>País</th>
+      <th>Teléfono</th><th>Email</th><th>Estado</th><th>Último contacto</th><th>Acciones</th>
+    </tr></thead><tbody>
+    ${filtered.map(l=>`<tr>
+      <td class="fw7">${l.name}</td>
+      <td>${l.nicho}</td>
+      <td class="muted">${l.city||'—'}</td>
+      <td class="muted">${l.country||'—'}</td>
+      <td class="muted">${l.phone||'—'}</td>
+      <td class="muted">${l.email||'—'}</td>
+      <td>${badgeHtml(l.status)}</td>
+      <td class="muted">${l.lastContact||'—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" style="margin-right:4px" onclick="editLead(${l.id})">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteLead(${l.id})" style="color:var(--red)">🗑️</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table>` : '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No se encontraron leads</div></div>';
+  document.getElementById('leads-table-wrap').innerHTML = html;
+}
+
+function renderProsMetrics() {
+  const total = leads.length;
+  const cerrados = leads.filter(l=>l.status==='Cerrado').length;
+  const tasa = total ? Math.round(cerrados/total*100) : 0;
+  const nichoCount = {};
+  leads.forEach(l=>{ if(l.nicho) nichoCount[l.nicho]=(nichoCount[l.nicho]||0)+1; });
+  const topNicho = Object.entries(nichoCount).sort((a,b)=>b[1]-a[1])[0];
+  const serviceCount = {};
+  leads.forEach(l=>{ if(l.service) serviceCount[l.service]=(serviceCount[l.service]||0)+1; });
+  const topService = Object.entries(serviceCount).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('pros-metrics').innerHTML = `
+    ${statCard('📊','Total Leads',total,'en base de datos','accent')}
+    ${statCard('🏆','Tasa Conversión',tasa+'%',cerrados+' cerrados','green')}
+    ${statCard('🎯','Top Nicho',topNicho?topNicho[0]:'—',topNicho?topNicho[1]+' leads':'','accent')}
+    ${statCard('🛠️','Top Servicio',topService?topService[0]:'—',topService?topService[1]+' leads':'','warn')}
+  `;
+}
+
+function importCSV(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l=>l.trim());
+    const headers = lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/\s/g,'_'));
+    let added = 0;
+    for (let i=1;i<lines.length;i++) {
+      const vals = lines[i].split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+      if (!vals[0]) continue;
+      const row = {};
+      headers.forEach((h,j)=>{ row[h]=vals[j]||''; });
+      leads.push({
+        id: nextId.leads++,
+        name: row.nombre||row.name||vals[0],
+        nicho: row.nicho||row.niche||'',
+        city: row.ciudad||row.city||'',
+        country: row.pais||row.country||'',
+        phone: row.telefono||row.phone||'',
+        email: row.email||'',
+        service: row.servicio||row.service||'',
+        status: row.estado||row.status||'Nuevo',
+        lastContact: row.ultimo_contacto||row.last_contact||'',
+        notes: row.notas||row.notes||'',
+        created: new Date().toISOString().split('T')[0],
+      });
+      added++;
+    }
+    persistAll();
+    renderLeadsTable(); renderProsMetrics(); renderNichoFilter(); updateBadges();
+    addNotification('success','📂','CSV Importado',`${added} leads importados correctamente`);
+    alert(`✅ ${added} leads importados correctamente`);
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function editLead(id) {
+  const l = leads.find(x=>x.id===id); if(!l) return;
+  STATE.editingLead = id;
+  ['name','nicho','city','country','phone','email','service','status','notes'].forEach(f=>{
+    const el = document.getElementById('l-'+f); if(el) el.value = l[f]||'';
+  });
+  document.querySelector('#modal-lead .modal-title').textContent = 'Editar Lead';
+  openModal('modal-lead');
+}
+
+function deleteLead(id) {
+  if (!confirm('¿Eliminar este lead?')) return;
+  leads = leads.filter(l=>l.id!==id);
+  persistAll(); renderLeadsTable(); renderProsMetrics(); updateBadges();
+  if(STATE.section==='crm') renderKanban();
+}
+
+function saveLead() {
+  const name = document.getElementById('l-name').value.trim();
+  if (!name) { alert('El nombre es requerido'); return; }
+  const data = {
+    name, nicho:document.getElementById('l-nicho').value.trim(),
+    city:document.getElementById('l-city').value.trim(),
+    country:document.getElementById('l-country').value.trim(),
+    phone:document.getElementById('l-phone').value.trim(),
+    email:document.getElementById('l-email').value.trim(),
+    service:document.getElementById('l-service').value.trim(),
+    status:document.getElementById('l-status').value,
+    notes:document.getElementById('l-notes').value.trim(),
+    lastContact: new Date().toISOString().split('T')[0],
+  };
+  if (STATE.editingLead) {
+    const idx = leads.findIndex(l=>l.id===STATE.editingLead);
+    if(idx>-1) leads[idx] = {...leads[idx],...data};
+    STATE.editingLead = null;
+  } else {
+    leads.push({id:nextId.leads++,...data,created:new Date().toISOString().split('T')[0]});
+    addNotification('info','🎯','Nuevo Lead',`${name} agregado al pipeline`);
+  }
+  persistAll(); closeModal('modal-lead');
+  renderLeadsTable(); renderProsMetrics(); renderNichoFilter(); updateBadges();
+  if(STATE.section==='crm') renderKanban();
+  document.querySelector('#modal-lead .modal-title').textContent = 'Nuevo Lead';
+  ['name','nicho','city','country','phone','email','service','notes'].forEach(f=>{
+    const el=document.getElementById('l-'+f); if(el) el.value='';
+  });
+}
+
+// ════════════════════════════════════════
+// CRM KANBAN
+// ════════════════════════════════════════
+function renderKanban() {
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = KANBAN_COLS.map(col=>{
+    const colLeads = leads.filter(l=>l.status===col);
+    return `<div class="kanban-col" data-col="${col}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropCard(event,'${col}')">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title" style="color:${COL_COLORS[col]}">${col}</div>
+        <div class="kanban-count">${colLeads.length}</div>
+      </div>
+      <div class="kanban-cards">
+        ${colLeads.map(l=>`
+          <div class="kanban-card" draggable="true" data-id="${l.id}"
+            ondragstart="event.dataTransfer.setData('id',${l.id});this.classList.add('dragging')"
+            ondragend="this.classList.remove('dragging');document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'))">
+            <div class="k-name">${l.name}</div>
+            <div class="k-nicho">${l.nicho}</div>
+            <div class="k-meta">${l.country||l.city||'—'} · ${l.service||'—'}</div>
+            ${l.lastContact?`<div class="k-meta">📅 ${l.lastContact}</div>`:''}
+            ${l.notes?`<div class="k-notes">${l.notes.slice(0,60)}${l.notes.length>60?'...':''}</div>`:''}
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="editLead(${l.id})">✏️ Editar</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:10px" onclick="deleteLead(${l.id})">🗑️</button>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="kanban-add" onclick="openLeadInCol('${col}')">＋ Agregar</button>
+    </div>`;
+  }).join('');
+}
+
+function dropCard(e, toStatus) {
+  e.preventDefault();
+  const id = parseInt(e.dataTransfer.getData('id'));
+  const lead = leads.find(l=>l.id===id);
+  if (lead) {
+    lead.status = toStatus;
+    lead.lastContact = new Date().toISOString().split('T')[0];
+    persistAll(); renderKanban(); updateBadges();
+  }
+  document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));
+}
+
+function openLeadInCol(status) {
+  document.getElementById('l-status').value = status;
+  openModal('modal-lead');
+}
+
+// ════════════════════════════════════════
+// CLIENTS
+// ════════════════════════════════════════
+function renderClients() {
+  const grid = document.getElementById('clients-grid');
+  if (!clients.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Sin clientes aún</div></div>'; return; }
+  grid.innerHTML = clients.map(c=>{
+    const initials = c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const tags = c.services.split(',').map(s=>s.trim()).filter(Boolean);
+    return `<div class="client-card" onclick="openClientDetail(${c.id})">
+      <div class="client-avatar">${initials}</div>
+      <div class="client-name">${c.name}</div>
+      <div class="client-nicho">${c.nicho}</div>
+      <div class="client-meta">📧 ${c.email}</div>
+      <div class="client-meta">📞 ${c.phone}</div>
+      <div class="client-tags">${tags.map(t=>`<span class="client-tag">${t}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function saveClient() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { alert('Nombre requerido'); return; }
+  clients.push({
+    id:nextId.clients++, name,
+    nicho:document.getElementById('c-nicho').value.trim(),
+    email:document.getElementById('c-email').value.trim(),
+    phone:document.getElementById('c-phone').value.trim(),
+    services:document.getElementById('c-services').value.trim(),
+    notes:document.getElementById('c-notes').value.trim(),
+    created:new Date().toISOString().split('T')[0], history:[]
+  });
+  persistAll(); closeModal('modal-client'); renderClients();
+  ['c-name','c-nicho','c-email','c-phone','c-services','c-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+function openClientDetail(id) {
+  const c = clients.find(x=>x.id===id); if(!c) return;
+  const tags = c.services.split(',').map(s=>s.trim()).filter(Boolean);
+  const clientLeads = leads.filter(l=>l.name.toLowerCase().includes(c.name.split(' ')[0].toLowerCase()));
+  const clientEvents = events.filter(e=>e.clientId===id);
+  document.getElementById('client-detail-content').innerHTML = `
+    <div class="modal-title">${c.name}</div>
+    <div style="color:var(--accent2);margin-bottom:16px">${c.nicho}</div>
+    <div class="grid g2 mb16">
+      <div><div class="form-label">Email</div><div>${c.email}</div></div>
+      <div><div class="form-label">Teléfono</div><div>${c.phone}</div></div>
+    </div>
+    <div class="mb16"><div class="form-label">Servicios</div><div style="display:flex;gap:6px;flex-wrap:wrap">${tags.map(t=>`<span class="client-tag">${t}</span>`).join('')}</div></div>
+    <div class="mb16"><div class="form-label">Notas</div><div style="font-size:13px;color:var(--txt2)">${c.notes||'Sin notas'}</div></div>
+    ${clientEvents.length?`<div class="mb16"><div class="form-label">Próximos eventos</div>${clientEvents.slice(0,3).map(e=>`<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">📅 ${e.date} — ${e.title}</div>`).join('')}</div>`:''}
+    <div class="form-label mt16">Cliente desde: ${c.created}</div>
+  `;
+  openModal('modal-client-detail');
+}
+
+// ════════════════════════════════════════
+// AGENDA / CALENDAR
+// ════════════════════════════════════════
+const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderCalendar() {
+  const y = STATE.calYear, m = STATE.calMonth;
+  document.getElementById('cal-title').textContent = `${MONTH_NAMES[m]} ${y}`;
+  document.getElementById('cal-day-names').innerHTML = DAY_NAMES.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  const firstDay = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const daysInPrev = new Date(y,m,0).getDate();
+  const today = new Date().toISOString().split('T')[0];
+  let cells = '';
+  for (let i=0;i<firstDay;i++) {
+    const d = daysInPrev-firstDay+1+i;
+    cells += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+  for (let d=1;d<=daysInMonth;d++) {
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEvents = events.filter(e=>e.date===dateStr);
+    cells += `<div class="cal-day${dateStr===today?' today':''}" onclick="openModal('modal-event');document.getElementById('e-date').value='${dateStr}'">
+      <div class="cal-day-num">${d}</div>
+      ${dayEvents.map(e=>`<div class="cal-event" title="${e.title}">${e.time} ${e.title}</div>`).join('')}
+    </div>`;
+  }
+  const remaining = 42 - firstDay - daysInMonth;
+  for (let i=1;i<=remaining&&remaining<7;i++) {
+    cells += `<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = cells;
+
+  // upcoming events
+  const upcoming = events.filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  document.getElementById('upcoming-events').innerHTML = upcoming.length
+    ? upcoming.map(e=>{
+        const cl = e.clientId ? clients.find(c=>c.id===e.clientId) : null;
+        return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:600">${e.title}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">📅 ${e.date} ${e.time} · ${e.type}</div>
+          ${cl?`<div style="font-size:11px;color:var(--accent2)">${cl.name}</div>`:''}
+        </div>`;
+      }).join('')
+    : '<div class="text-muted">Sin eventos próximos</div>';
+
+  // populate event client select
+  const sel = document.getElementById('e-client');
+  if(sel) sel.innerHTML = '<option value="">Sin cliente</option>' + clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function calNav(dir) {
+  STATE.calMonth += dir;
+  if (STATE.calMonth<0) { STATE.calMonth=11; STATE.calYear--; }
+  if (STATE.calMonth>11) { STATE.calMonth=0; STATE.calYear++; }
+  renderCalendar();
+}
+
+function saveEvent() {
+  const title = document.getElementById('e-title').value.trim();
+  if (!title) { alert('Título requerido'); return; }
+  events.push({
+    id:nextId.events++, title,
+    date:document.getElementById('e-date').value,
+    time:document.getElementById('e-time').value,
+    type:document.getElementById('e-type').value,
+    clientId:parseInt(document.getElementById('e-client').value)||0,
+    notes:document.getElementById('e-notes').value.trim(),
+  });
+  persistAll(); closeModal('modal-event'); renderCalendar();
+  ['e-title','e-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+// ════════════════════════════════════════
+// TASKS
+// ════════════════════════════════════════
+function saveTask() {
+  const title = document.getElementById('t-title').value.trim();
+  if (!title) { alert('Tarea requerida'); return; }
+  tasks.push({
+    id:nextId.tasks++, title,
+    priority:document.getElementById('t-priority').value,
+    due:document.getElementById('t-due').value,
+    done:false
+  });
+  persistAll(); closeModal('modal-task'); updateBadges();
+  if(STATE.section==='hub') renderHub();
+  ['t-title','t-due'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+// ════════════════════════════════════════
+// REPORTS
+// ════════════════════════════════════════
+function renderReports() {
+  const options = [
+    {icon:'📊',title:'Reporte por Cliente',desc:'Resumen de campañas y resultados',fn:`generateReport('client')`},
+    {icon:'🎯',title:'Reporte de Leads',desc:'Pipeline completo con tasas de conversión',fn:`generateReport('leads')`},
+    {icon:'📅',title:'Reporte Semanal',desc:'Actividad de la semana en curso',fn:`generateReport('weekly')`},
+    {icon:'📈',title:'Reporte de Analytics',desc:'Métricas y gráficas de rendimiento',fn:`generateReport('analytics')`},
+  ];
+  document.getElementById('report-options').innerHTML = options.map(o=>`
+    <div class="report-option" onclick="${o.fn}">
+      <div class="report-icon">${o.icon}</div>
+      <div><div class="report-title">${o.title}</div><div class="report-desc">${o.desc}</div></div>
+    </div>`).join('');
+}
+
+function generateReport(type) {
+  const now = new Date().toLocaleDateString('es',{year:'numeric',month:'long',day:'numeric'});
+  let html = '';
+  if (type==='client') {
+    html = `<h2 style="color:var(--accent2);margin-bottom:16px">Reporte por Cliente — ${now}</h2>`;
+    clients.forEach(c=>{
+      const cLeads = leads.filter(l=>l.nicho===c.nicho);
+      html += `<div style="margin-bottom:20px;padding:16px;border:1px solid var(--border);border-radius:8px">
+        <h3>${c.name} <span style="font-size:12px;color:var(--txt2)">(${c.nicho})</span></h3>
+        <p style="color:var(--txt2);font-size:13px;margin-top:8px">Servicios: ${c.services}</p>
+        <p style="color:var(--txt2);font-size:13px">Leads en nicho: ${cLeads.length}</p>
+        <p style="color:var(--txt2);font-size:13px">Notas: ${c.notes}</p>
+      </div>`;
+    });
+  } else if (type==='leads') {
+    const cerrados = leads.filter(l=>l.status==='Cerrado').length;
+    html = `<h2 style="color:var(--accent2);margin-bottom:16px">Reporte de Leads — ${now}</h2>
+      <p><strong>Total:</strong> ${leads.length} leads | <strong>Cerrados:</strong> ${cerrados} | <strong>Conversión:</strong> ${leads.length?Math.round(cerrados/leads.length*100):0}%</p>
+      <div style="margin-top:16px"><table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>${['Nombre','Nicho','País','Estado','Último contacto'].map(h=>`<th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);color:var(--txt2)">${h}</th>`).join('')}</tr></thead>
+        <tbody>${leads.map(l=>`<tr><td style="padding:8px">${l.name}</td><td style="padding:8px">${l.nicho}</td><td style="padding:8px">${l.country||'—'}</td><td style="padding:8px">${l.status}</td><td style="padding:8px">${l.lastContact||'—'}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  } else if (type==='weekly') {
+    html = `<h2 style="color:var(--accent2);margin-bottom:16px">Reporte Semanal — ${now}</h2>
+      <p><strong>Leads nuevos:</strong> ${leads.filter(l=>daysSince(l.created)<=7).length}</p>
+      <p><strong>Tareas completadas:</strong> ${tasks.filter(t=>t.done).length} / ${tasks.length}</p>
+      <p><strong>Eventos próximos:</strong> ${events.filter(e=>e.date>=new Date().toISOString().split('T')[0]).length}</p>
+      <p style="margin-top:12px"><strong>Leads por estado esta semana:</strong></p>
+      ${KANBAN_COLS.map(s=>`<p>${s}: ${leads.filter(l=>l.status===s).length}</p>`).join('')}`;
+  } else {
+    html = `<h2 style="color:var(--accent2);margin-bottom:16px">Reporte Analytics — ${now}</h2>
+      <p>Los gráficos interactivos están disponibles en el módulo Analytics.</p>`;
+  }
+  const card = document.getElementById('report-preview');
+  document.getElementById('report-content').innerHTML = html;
+  card.style.display = '';
+}
+
+function printReport() { window.print(); }
+function exportReport() {
+  const content = document.getElementById('report-content').innerHTML;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CKC Report</title><style>body{font-family:sans-serif;padding:24px;color:#111}h2{color:#7c3aed}</style></head><body>${content}</body></html>`;
+  const blob = new Blob([html],{type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `CKC-Reporte-${new Date().toISOString().split('T')[0]}.html`;
+  a.click();
+}
+
+// ════════════════════════════════════════
+// NOTIFICATIONS
+// ════════════════════════════════════════
+function addNotification(type, icon, title, msg) {
+  notifications.unshift({id:nextId.notifs++,type,icon,title,msg,time:'Ahora',read:false});
+  persistAll(); updateBadges();
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifications-list');
+  if (!notifications.length) { list.innerHTML='<div class="empty"><div class="empty-icon">🔔</div><div class="empty-text">Sin notificaciones</div></div>'; return; }
+  list.innerHTML = notifications.map(n=>`
+    <div class="notif-item${n.read?'':' unread'}" onclick="markRead(${n.id})">
+      <div class="notif-icon ${n.type}">${n.icon}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-msg">${n.msg}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+      ${!n.read?'<div class="alert-dot" style="background:var(--accent);flex-shrink:0;margin-top:4px"></div>':''}
+    </div>`).join('');
+}
+
+function markRead(id) {
+  const n = notifications.find(x=>x.id===id);
+  if(n) { n.read=true; persistAll(); renderNotifications(); updateBadges(); }
+}
+
+function markAllRead() {
+  notifications.forEach(n=>n.read=true);
+  persistAll(); renderNotifications(); updateBadges();
+}
+
+// ════════════════════════════════════════
+// ANALYTICS
+// ════════════════════════════════════════
+const CHART_OPTS = {
+  plugins:{legend:{labels:{color:'#8888aa',font:{size:11}}}},
+  scales:{x:{ticks:{color:'#8888aa'},grid:{color:'#1c1c30'}},y:{ticks:{color:'#8888aa'},grid:{color:'#1c1c30'}}},
+};
+
+function renderAnalytics() {
+  destroyCharts();
+  // Leads por nicho
+  const nichoCount = {};
+  leads.forEach(l=>{ nichoCount[l.nicho]=(nichoCount[l.nicho]||0)+1; });
+  const nichos = Object.keys(nichoCount), niChoVals = Object.values(nichoCount);
+  newChart('chart-nicho','bar',nichos,niChoVals,'rgba(124,58,237,.7)');
+
+  // Conversión por mes (mock data basada en leads)
+  const months = ['Oct','Nov','Dic','Ene','Feb','Mar'];
+  const convVals = [12,18,14,22,19, leads.filter(l=>l.status==='Cerrado').length];
+  newChart('chart-month','line',months,convVals,'rgba(168,85,247,.7)',true);
+
+  // Pipeline
+  const pipeVals = KANBAN_COLS.map(s=>leads.filter(l=>l.status===s).length);
+  newChart('chart-pipeline','doughnut',KANBAN_COLS,pipeVals,['#3b82f6','#f59e0b','#a855f7','#10b981','#ef4444'],false,true);
+
+  // Servicios
+  const svcCount = {};
+  leads.forEach(l=>{ if(l.service) svcCount[l.service]=(svcCount[l.service]||0)+1; });
+  const svcs = Object.keys(svcCount), svcVals = Object.values(svcCount);
+  newChart('chart-services','bar',svcs,svcVals,'rgba(59,130,246,.7)');
+
+  // País
+  const cntCount = {};
+  leads.forEach(l=>{ if(l.country) cntCount[l.country]=(cntCount[l.country]||0)+1; });
+  const cnts = Object.keys(cntCount), cntVals = Object.values(cntCount);
+  newChart('chart-country','bar',cnts,cntVals,'rgba(16,185,129,.7)');
+}
+
+function newChart(id, type, labels, data, color, tension=false, doughnut=false) {
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
+  const cfg = {
+    type, data:{
+      labels,
+      datasets:[{
+        data, backgroundColor:color, borderColor: Array.isArray(color)?color:'rgba(168,85,247,1)',
+        borderWidth:doughnut?0:2, fill:tension, tension:tension?0.4:undefined,
+        pointBackgroundColor:'var(--accent2)',
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'#8888aa',font:{size:11}},display:doughnut}},
+      scales: doughnut ? {} : CHART_OPTS.scales,
+    }
+  };
+  STATE.charts[id] = new Chart(ctx, cfg);
+}
+
+function destroyCharts() {
+  Object.values(STATE.charts).forEach(c=>{ try{ c.destroy(); }catch{} });
+  STATE.charts = {};
+}
+
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+function renderConfig() {
+  const rows = [
+    {label:'Agente Ads',url:document.getElementById('cfg-ads-url')?.value,status:'ok'},
+    {label:'Endpoint Clientes',url:document.getElementById('cfg-clientes-url')?.value,status:'ok'},
+    {label:'Base de datos local',url:'localStorage',status:'ok'},
+  ];
+  document.getElementById('system-status').innerHTML = rows.map(r=>`
+    <div class="config-row">
+      <span>${r.label}</span>
+      <span class="badge badge-${r.status==='ok'?'cerrado':'perdido'}">${r.status==='ok'?'● Activo':'● Error'}</span>
+    </div>`).join('');
+}
+
+function saveConfig() {
+  const cfg = {
+    adsUrl:document.getElementById('cfg-ads-url').value,
+    clientesUrl:document.getElementById('cfg-clientes-url').value,
+  };
+  save('config',cfg);
+  addNotification('success','💾','Configuración guardada','Los cambios fueron guardados correctamente');
+  alert('✅ Configuración guardada');
+}
+
+// ════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open'); });
+});
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function badgeHtml(status) {
+  const map = {'Nuevo':'nuevo','Contactado':'contactado','Respondió':'respondio','Cerrado':'cerrado','Perdido':'perdido'};
+  return `<span class="badge badge-${map[status]||'nuevo'}">${status}</span>`;
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+function init() {
+  updateBadges();
+  renderHub();
+  fetchClientes();
+  // Set today's date in forms
+  const today = new Date().toISOString().split('T')[0];
+  ['e-date','t-due'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=today; });
+  // Populate event client select
+  const sel = document.getElementById('e-client');
+  if(sel) sel.innerHTML = '<option value="">Sin cliente</option>' + clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+init();
+</script>
+</body>
+</html>
