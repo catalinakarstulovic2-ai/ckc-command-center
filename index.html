@@ -217,6 +217,40 @@ select option{background:var(--bg2)}
 .tag-apify,.tag-apollo,.tag-csv,.tag-manual{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
 
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+
+/* ── Prospección — Tabs ─────────────────────────────────── */
+.pros-tabs{display:flex;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px}
+.pros-tab{background:transparent;border:none;color:var(--txt2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;font-family:inherit}
+.pros-tab.active{background:var(--accent);color:#fff}
+
+/* ── Daily Board ────────────────────────────────────────── */
+.daily-board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.daily-board{grid-template-columns:1fr}}
+.daily-col-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px 10px 0 0;font-weight:700;font-size:13px;letter-spacing:.3px}
+.daily-col-header.contactar{background:rgba(239,68,68,.15);color:var(--red)}
+.daily-col-header.followup{background:rgba(245,158,11,.15);color:var(--yellow)}
+.daily-col-header.calientes{background:rgba(16,185,129,.15);color:var(--green)}
+.daily-col-count{background:var(--card2);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}
+.daily-col-body{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;min-height:180px;padding:10px;display:flex;flex-direction:column;gap:10px}
+
+/* ── Lead Card ──────────────────────────────────────────── */
+.lead-card{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:14px}
+.lead-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.lead-card-name{font-weight:700;font-size:14px;color:var(--txt)}
+.lead-card-meta{font-size:12px;color:var(--txt2);margin-top:2px}
+.lead-card-info{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--txt2);margin-bottom:10px}
+.lead-card-msg{background:var(--bg2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:var(--txt2);font-style:italic;margin-bottom:10px;line-height:1.5;max-height:70px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.lead-card-actions{display:flex;gap:5px;flex-wrap:wrap}
+.lead-card-actions .btn{flex:1;min-width:0;font-size:11px;padding:5px 6px;white-space:nowrap}
+.badge-canal{background:rgba(59,130,246,.15);color:var(--blue);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600}
+
+/* ── Historial ──────────────────────────────────────────── */
+.historial-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.historial-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}
+
+/* ── Toast ──────────────────────────────────────────────── */
+#ckc-toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border2);color:var(--txt);padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none}
+#ckc-toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -293,31 +327,44 @@ select option{background:var(--bg2)}
     <!-- PROSPECCIÓN -->
     <div class="section" id="section-prospecting">
       <div class="section-header">
-        <div class="section-title">Agente <span>Prospección</span></div>
-        <div class="flex gap8" style="flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm" onclick="openModal('modal-apify')">🔗 Importar Apify</button>
-          <label class="btn btn-ghost btn-sm" style="cursor:pointer">📂 CSV <input type="file" accept=".csv" style="display:none" onchange="importCSV(this)"></label>
-          <button class="btn btn-primary btn-sm" onclick="openLeadModal()">+ Agregar Lead</button>
+        <div class="section-title">Panel de <span>Prospección</span></div>
+        <div class="flex gap8" style="flex-wrap:wrap;align-items:center">
+          <div class="pros-tabs">
+            <button class="pros-tab active" id="tab-daily" onclick="switchProsView('daily')">⚡ Acción Diaria</button>
+            <button class="pros-tab" id="tab-all" onclick="switchProsView('all')">📋 Todos</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('modal-apify')">🔗 Apify</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">📂 Importar CSV<input type="file" accept=".csv" style="display:none" onchange="importCSV(this)"></label>
+          <button class="btn btn-primary btn-sm" onclick="openLeadModal()">+ Lead</button>
         </div>
       </div>
-      <div class="grid g4 mb16" id="pros-metrics"><div class="loading">Calculando</div></div>
-      <div class="card mt16">
-        <div class="flex gap8 mb16" style="flex-wrap:wrap">
-          <input class="form-input" style="max-width:220px" type="text" id="search-leads" placeholder="🔍 Buscar..." oninput="renderLeadsTable()">
-          <select class="form-select" style="max-width:160px" id="filter-status" onchange="renderLeadsTable()">
-            <option value="">Todos los estados</option>
-            <option>Nuevo</option><option>Contactado</option><option>Respondió</option><option>Cerrado</option><option>Perdido</option>
-          </select>
-          <select class="form-select" style="max-width:160px" id="filter-nicho" onchange="renderLeadsTable()">
-            <option value="">Todos los nichos</option>
-          </select>
-          <select class="form-select" style="max-width:140px" id="filter-source" onchange="renderLeadsTable()">
-            <option value="">Todas las fuentes</option>
-            <option value="manual">Manual</option><option value="csv">CSV</option>
-            <option value="apify">Apify</option><option value="apollo">Apollo</option>
-          </select>
+
+      <!-- VISTA ACCIÓN DIARIA -->
+      <div id="pros-view-daily">
+        <div class="grid g4 mb16" id="pros-metrics"><div class="loading">Calculando</div></div>
+        <div class="daily-board" id="daily-board"><div class="loading">Cargando panel diario</div></div>
+      </div>
+
+      <!-- VISTA TODOS LOS LEADS -->
+      <div id="pros-view-all" style="display:none">
+        <div class="card mt16">
+          <div class="flex gap8 mb16" style="flex-wrap:wrap">
+            <input class="form-input" style="max-width:220px" type="text" id="search-leads" placeholder="🔍 Buscar..." oninput="renderLeadsTable()">
+            <select class="form-select" style="max-width:160px" id="filter-status" onchange="renderLeadsTable()">
+              <option value="">Todos los estados</option>
+              <option>Nuevo</option><option>Contactado</option><option>Respondió</option><option>Cerrado</option><option>Perdido</option>
+            </select>
+            <select class="form-select" style="max-width:160px" id="filter-nicho" onchange="renderLeadsTable()">
+              <option value="">Todos los nichos</option>
+            </select>
+            <select class="form-select" style="max-width:140px" id="filter-source" onchange="renderLeadsTable()">
+              <option value="">Todas las fuentes</option>
+              <option value="manual">Manual</option><option value="csv">CSV</option>
+              <option value="apify">Apify</option><option value="apollo">Apollo</option>
+            </select>
+          </div>
+          <div class="table-wrap" id="leads-table-wrap"><div class="loading">Cargando leads</div></div>
         </div>
-        <div class="table-wrap" id="leads-table-wrap"><div class="loading">Cargando leads</div></div>
       </div>
     </div>
 
@@ -546,6 +593,17 @@ select option{background:var(--bg2)}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-historial">
+  <div class="modal">
+    <div class="modal-title">📜 Historial del Lead</div>
+    <div id="historial-lead-name" style="color:var(--txt2);font-size:13px;margin-bottom:16px"></div>
+    <div id="historial-content"><div class="loading">Cargando</div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-historial')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-task">
   <div class="modal">
     <div class="modal-title">Nueva Tarea</div>
@@ -569,6 +627,8 @@ select option{background:var(--bg2)}
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-client-detail')">Cerrar</button></div>
   </div>
 </div>
+
+<div id="ckc-toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -614,6 +674,7 @@ const S = {
   calMonth: new Date().getMonth(),
   charts: {},
   editLeadId: null,
+  prosView: 'daily',
   config: JSON.parse(localStorage.getItem('ckc_config') || '{}'),
 };
 
@@ -787,8 +848,137 @@ async function loadProspecting() {
   S.leads = leads;
   updateBadges();
   renderProsMetrics();
-  renderLeadsTable();
-  renderNichoFilter();
+  if (S.prosView === 'daily') {
+    await renderDailyPanel();
+  } else {
+    renderLeadsTable();
+    renderNichoFilter();
+  }
+}
+
+function switchProsView(v) {
+  S.prosView = v;
+  document.getElementById('pros-view-daily').style.display = v === 'daily' ? '' : 'none';
+  document.getElementById('pros-view-all').style.display   = v === 'all'   ? '' : 'none';
+  document.getElementById('tab-daily').classList.toggle('active', v === 'daily');
+  document.getElementById('tab-all').classList.toggle('active',   v === 'all');
+  if (v === 'all') { renderLeadsTable(); renderNichoFilter(); }
+  else { renderDailyPanel(); }
+}
+
+async function renderDailyPanel() {
+  const board = document.getElementById('daily-board');
+  if (!board) return;
+  board.innerHTML = '<div class="loading">Cargando panel diario</div>';
+  try {
+    const data = await api.get('/leads/accion-diaria');
+    board.innerHTML = [
+      renderDailyCol('🔥 Contactar Hoy',  data.contactar_hoy, 'contactar'),
+      renderDailyCol('⏰ Follow Up',       data.follow_up,     'followup'),
+      renderDailyCol('✅ Leads Calientes', data.calientes,     'calientes'),
+    ].join('');
+  } catch(e) {
+    board.innerHTML = `<div style="color:var(--red);font-size:13px;padding:16px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderDailyCol(title, leads, cls) {
+  const body = leads.length
+    ? leads.map(renderLeadCard).join('')
+    : '<div class="empty" style="padding:32px 0"><div class="empty-icon" style="font-size:28px">📭</div><div class="empty-text" style="font-size:12px">Sin leads</div></div>';
+  return `
+    <div>
+      <div class="daily-col-header ${cls}">
+        <span>${title}</span>
+        <span class="daily-col-count">${leads.length}</span>
+      </div>
+      <div class="daily-col-body">${body}</div>
+    </div>`;
+}
+
+function renderLeadCard(l) {
+  const phone   = (l.phone || '').trim();
+  const waLink  = phone ? `https://wa.me/${phone.replace(/\D/g,'')}` : '';
+  const ciudad  = (l.ciudad_pais || [l.city, l.country].filter(Boolean).join(', ') || '').trim();
+  const msg     = (l.mensaje || l.notes || '').trim();
+  const msgSafe = msg.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ');
+  const nameSafe = l.name.replace(/'/g,"\\'");
+
+  return `<div class="lead-card">
+  <div class="lead-card-top">
+    <div>
+      <div class="lead-card-name">${l.name}</div>
+      <div class="lead-card-meta">🎯 ${l.nicho||'—'}${l.urgencia ? ' · 🔴 '+l.urgencia : ''}</div>
+    </div>
+    ${l.canal ? `<span class="badge-canal">${l.canal}</span>` : ''}
+  </div>
+  <div class="lead-card-info">
+    ${ciudad ? `<span>📍 ${ciudad}</span>` : ''}
+    ${phone  ? `<span>💬 <a href="${waLink}" target="_blank" style="color:var(--green);text-decoration:none">${phone}</a></span>` : ''}
+    ${l.probabilidad_cierre ? `<span style="color:var(--accent2)">📈 ${l.probabilidad_cierre}%</span>` : ''}
+  </div>
+  ${msg ? `<div class="lead-card-msg">"${msg}"</div>` : ''}
+  <div class="lead-card-actions">
+    ${msg ? `<button class="btn btn-ghost btn-sm" onclick="copyMsg('${msgSafe}')">📋 Copiar</button>` : ''}
+    <button class="btn btn-primary btn-sm" onclick="markContactado(${l.id})">✓ Contactado</button>
+    <button class="btn btn-ghost btn-sm" onclick="openHistorial(${l.id},'${nameSafe}')">📜</button>
+    <button class="btn btn-ghost btn-sm" onclick="editLead(${l.id})">✏️</button>
+  </div>
+</div>`;
+}
+
+function copyMsg(txt) {
+  navigator.clipboard.writeText(txt)
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    })
+    .finally(() => showToast('✅ Mensaje copiado al portapapeles'));
+}
+
+async function markContactado(id) {
+  try {
+    await api.patch('/leads/' + id, {
+      status: 'Contactado',
+      last_contact: new Date().toISOString().split('T')[0],
+      _note: 'Marcado como contactado',
+    });
+    await renderDailyPanel();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function openHistorial(id, name) {
+  document.getElementById('historial-lead-name').textContent = name || '';
+  document.getElementById('historial-content').innerHTML = '<div class="loading">Cargando</div>';
+  openModal('modal-historial');
+  try {
+    const rows = await api.get('/leads/' + id + '/historial');
+    document.getElementById('historial-content').innerHTML = rows.length
+      ? rows.map(r => `
+        <div class="historial-item">
+          <div class="historial-dot"></div>
+          <div>
+            <div style="font-size:13px">
+              ${r.from_status ? `<span style="color:var(--txt2)">${r.from_status}</span> → ` : ''}
+              <b style="color:var(--accent2)">${r.to_status || '—'}</b>
+            </div>
+            ${r.note ? `<div style="font-size:12px;color:var(--txt2);margin-top:3px">${r.note}</div>` : ''}
+            <div style="font-size:11px;color:var(--txt3);margin-top:2px">${new Date(r.created_at).toLocaleString('es')}</div>
+          </div>
+        </div>`).join('')
+      : '<div class="empty" style="padding:32px"><div class="empty-icon">📭</div><div class="empty-text">Sin historial registrado</div></div>';
+  } catch(e) {
+    document.getElementById('historial-content').innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${e.message}</div>`;
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('ckc-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
 function renderNichoFilter() {
@@ -804,7 +994,7 @@ function renderLeadsTable() {
   const sr = document.getElementById('filter-source')?.value || '';
 
   const f = S.leads.filter(l =>
-    (!q  || [l.name,l.nicho,l.email,l.city,l.country].some(v => (v||'').toLowerCase().includes(q))) &&
+    (!q  || [l.name,l.nicho,l.email,l.city,l.country,l.ciudad_pais].some(v => (v||'').toLowerCase().includes(q))) &&
     (!st || l.status === st) &&
     (!ni || l.nicho  === ni) &&
     (!sr || l.source === sr)
@@ -812,25 +1002,31 @@ function renderLeadsTable() {
 
   document.getElementById('leads-table-wrap').innerHTML = f.length ? `
     <table><thead><tr>
-      <th>Nombre</th><th>Nicho</th><th>País</th><th>Teléfono</th><th>Email</th>
+      <th>Nombre</th><th>Nicho</th><th>Ciudad/País</th><th>Canal</th><th>Teléfono</th>
       <th>Fuente</th><th>Estado</th><th>Últ. contacto</th><th>Deal</th><th>Acciones</th>
     </tr></thead><tbody>
-    ${f.map(l => `<tr>
-      <td class="fw7">${l.name}</td>
-      <td>${l.nicho||'—'}</td>
-      <td class="muted">${l.country||l.city||'—'}</td>
-      <td class="muted">${l.phone ? `<a href="https://wa.me/${l.phone.replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none" title="WhatsApp">💬 ${l.phone}</a>` : '—'}</td>
-      <td class="muted">${l.email||'—'}</td>
-      <td>${sourceBadge(l.source)}</td>
-      <td>${statusBadge(l.status)}</td>
-      <td class="muted">${l.last_contact||'—'}</td>
-      <td class="muted">${l.deal_value > 0 ? '$' + Number(l.deal_value).toLocaleString() : '—'}</td>
-      <td>
-        <button class="btn btn-ghost btn-sm" style="margin-right:4px" onclick="editLead(${l.id})">✏️</button>
-        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteLead(${l.id})">🗑️</button>
-      </td>
-    </tr>`).join('')}
-    </tbody></table>` : '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No se encontraron leads</div></div>';
+    ${f.map(l => {
+      const ciudad = l.ciudad_pais || [l.city,l.country].filter(Boolean).join(', ') || '—';
+      return `<tr>
+        <td class="fw7">${l.name}</td>
+        <td>${l.nicho||'—'}</td>
+        <td class="muted">${ciudad}</td>
+        <td>${l.canal ? `<span class="badge-canal">${l.canal}</span>` : '—'}</td>
+        <td class="muted">${l.phone ? `<a href="https://wa.me/${l.phone.replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">💬 ${l.phone}</a>` : '—'}</td>
+        <td>${sourceBadge(l.source)}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td class="muted">${l.last_contact||'—'}</td>
+        <td class="muted">${l.deal_value > 0 ? '$'+Number(l.deal_value).toLocaleString() : '—'}</td>
+        <td style="white-space:nowrap">
+          ${l.mensaje ? `<button class="btn btn-ghost btn-sm" style="margin-right:3px" onclick="copyMsg('${(l.mensaje||'').replace(/'/g,"\\'").replace(/\n/g,' ')}')">📋</button>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-right:3px" onclick="openHistorial(${l.id},'${l.name.replace(/'/g,"\\'")}')">📜</button>
+          <button class="btn btn-ghost btn-sm" style="margin-right:3px" onclick="editLead(${l.id})">✏️</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteLead(${l.id})">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`
+    : '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No se encontraron leads</div></div>';
 }
 
 function renderProsMetrics() {
@@ -842,12 +1038,13 @@ function renderProsMetrics() {
   leads.forEach(l => { if (l.nicho) nichoC[l.nicho] = (nichoC[l.nicho]||0)+1; });
   const topNicho = Object.entries(nichoC).sort((a,b) => b[1]-a[1])[0];
   const pipelineVal = leads.filter(l => l.status !== 'Perdido').reduce((s,l) => s + Number(l.deal_value||0), 0);
-
-  document.getElementById('pros-metrics').innerHTML = [
-    statCard('📊','Total Leads', total, 'en base de datos', '#a855f7'),
-    statCard('🏆','Tasa Conversión', tasa + '%', cerrados + ' cerrados', '#10b981'),
-    statCard('🎯','Top Nicho', topNicho?topNicho[0]:'—', topNicho?topNicho[1]+' leads':'', '#a855f7'),
-    statCard('💰','Pipeline Value', '$' + pipelineVal.toLocaleString(), 'deals activos', '#f59e0b'),
+  const el = document.getElementById('pros-metrics');
+  if (!el) return;
+  el.innerHTML = [
+    statCard('📊','Total Leads',     total,                           'en base de datos', '#a855f7'),
+    statCard('🏆','Conversión',      tasa + '%',                      cerrados + ' cerrados', '#10b981'),
+    statCard('🎯','Top Nicho',       topNicho?topNicho[0]:'—',        topNicho?topNicho[1]+' leads':'', '#a855f7'),
+    statCard('💰','Pipeline',        '$'+pipelineVal.toLocaleString(), 'deals activos', '#f59e0b'),
   ].join('');
 }
 
@@ -857,28 +1054,40 @@ async function importCSV(input) {
   reader.onload = async e => {
     const text = e.target.result;
     const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { showToast('⚠️ CSV vacío'); return; }
     const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase().replace(/\s+/g,'_'));
     const csvLeads = [];
     for (let i = 1; i < lines.length; i++) {
       const vals = parseCSVLine(lines[i]);
-      if (!vals[0]?.trim()) continue;
+      if (!vals.some(v => v.trim())) continue;
       const row = {};
       headers.forEach((h, j) => { row[h] = (vals[j]||'').trim().replace(/^"|"$/g,''); });
       csvLeads.push({
-        name:         row.nombre || row.name || vals[0],
-        nicho:        row.nicho  || row.niche  || '',
-        city:         row.ciudad || row.city   || '',
-        country:      row.pais   || row.country || '',
-        phone:        row.telefono || row.phone || '',
-        email:        row.email  || '',
-        service:      row.servicio || row.service || '',
-        status:       row.estado || row.status || 'Nuevo',
-        notes:        row.notas  || row.notes  || '',
+        name:                row.nombre              || row.name       || '',
+        nicho:               row.nicho               || row.niche      || '',
+        ciudad_pais:         row.ciudad_pais         || '',
+        city:                row.ciudad              || row.city       || '',
+        country:             row.pais                || row.country    || '',
+        phone:               row.telefono_contacto   || row.telefono   || row.phone || '',
+        email:               row.email               || '',
+        service:             row.servicio            || row.service    || '',
+        deal_value:          parseFloat(row.precio_usd || row.valor_cliente || row.deal_value || 0) || 0,
+        status:              row.estado              || row.status     || 'Nuevo',
+        notes:               row.notas               || row.notes      || '',
+        tipo:                row.tipo                || '',
+        problema:            row.problema            || '',
+        urgencia:            row.urgencia            || '',
+        probabilidad_cierre: parseFloat(row.probabilidad_cierre || 0) || null,
+        canal:               row.canal               || '',
+        fuente_verificacion: row.fuente_verificacion || row.fuente     || '',
+        mensaje:             row.mensaje             || '',
       });
     }
+    const valid = csvLeads.filter(l => l.name);
+    if (!valid.length) { showToast('⚠️ No se encontraron leads con nombre'); return; }
     try {
-      const res = await api.post('/leads/import-csv', { leads: csvLeads });
-      alert(`✅ CSV importado: ${res.added} nuevos, ${res.skipped} duplicados omitidos`);
+      const res = await api.post('/leads/import-csv', { leads: valid });
+      showToast(`✅ ${res.added} importados · ${res.skipped} duplicados omitidos`);
       await loadProspecting();
     } catch(e) { alert('Error importando CSV: ' + e.message); }
   };

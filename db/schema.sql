@@ -72,6 +72,16 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Columnas para flujo de prospección del agente (idempotente)
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS tipo                VARCHAR(100);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ciudad_pais         VARCHAR(255);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS problema            TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS urgencia            VARCHAR(50);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS probabilidad_cierre DECIMAL(5,2);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS canal               VARCHAR(100);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS fuente_verificacion TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS mensaje             TEXT;
+
 -- Índices útiles
 CREATE INDEX IF NOT EXISTS idx_leads_status    ON leads(status);
 CREATE INDEX IF NOT EXISTS idx_leads_email     ON leads(email);

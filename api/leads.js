@@ -2,7 +2,9 @@
 'use strict';
 
 const FIELDS = ['name','nicho','city','country','phone','email','service',
-                'status','deal_value','source','notes','apify_id','apollo_id','last_contact'];
+                'status','deal_value','source','notes','apify_id','apollo_id','last_contact',
+                'tipo','ciudad_pais','problema','urgencia','probabilidad_cierre',
+                'canal','fuente_verificacion','mensaje'];
 
 module.exports = function(pool) {
   const { Router } = require('express');
@@ -38,6 +40,39 @@ module.exports = function(pool) {
         `SELECT DISTINCT nicho FROM leads WHERE nicho IS NOT NULL AND nicho <> '' ORDER BY nicho`
       );
       res.json(rows.map(r => r.nicho));
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── GET /api/leads/accion-diaria ────────────────────────────
+  router.get('/accion-diaria', async (_req, res) => {
+    try {
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+        .toISOString().split('T')[0];
+
+      const [contactarQ, followupQ, calientesQ] = await Promise.all([
+        // Nuevos + contactados hace más de 2 días sin respuesta
+        pool.query(`
+          SELECT * FROM leads
+          WHERE status = 'Nuevo'
+             OR (status = 'Contactado' AND (last_contact IS NULL OR last_contact <= $1))
+          ORDER BY created_at DESC`, [twoDaysAgo]),
+        // Contactados recientemente (menos de 2 días), aún sin respuesta
+        pool.query(`
+          SELECT * FROM leads
+          WHERE status = 'Contactado' AND last_contact > $1
+          ORDER BY last_contact DESC`, [twoDaysAgo]),
+        // Leads que respondieron
+        pool.query(`
+          SELECT * FROM leads
+          WHERE status = 'Respondió'
+          ORDER BY updated_at DESC`),
+      ]);
+
+      res.json({
+        contactar_hoy: contactarQ.rows,
+        follow_up:     followupQ.rows,
+        calientes:     calientesQ.rows,
+      });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -81,15 +116,26 @@ module.exports = function(pool) {
         `UPDATE leads SET ${set}, updated_at=NOW() WHERE id=$${vals.length} RETURNING *`, vals
       );
 
-      // Registrar cambio de status
-      if (body.status && body.status !== oldStatus) {
+      // Registrar cambio de status o acción forzada (con nota)
+      if ((body.status && body.status !== oldStatus) || body._note) {
         await pool.query(
           'INSERT INTO lead_activity (lead_id,from_status,to_status,note) VALUES ($1,$2,$3,$4)',
-          [id, oldStatus, body.status, body._note||null]
+          [id, oldStatus, body.status || oldStatus, body._note || null]
         );
       }
 
       res.json(rows[0]);
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── GET /api/leads/:id/historial ────────────────────────────
+  router.get('/:id/historial', async (req, res) => {
+    try {
+      const { rows } = await pool.query(
+        'SELECT * FROM lead_activity WHERE lead_id=$1 ORDER BY created_at DESC',
+        [req.params.id]
+      );
+      res.json(rows);
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -115,7 +161,6 @@ module.exports = function(pool) {
       let added = 0, skipped = 0;
 
       for (const item of items) {
-        // Normalizar campos (Apify puede devolver distintas estructuras)
         const email = item.email || item.emails?.[0] || '';
         const phone = item.phone || item.phoneNumber || item.phones?.[0] || '';
         const name  = item.name  || item.fullName || item.title
@@ -125,12 +170,10 @@ module.exports = function(pool) {
         const country = item.country || item.location?.country || item.address?.country || '';
         const apifyId = String(item.id || item._id || '').slice(0, 255);
 
-        // Deduplicar por email
         if (email) {
           const { rows } = await pool.query('SELECT id FROM leads WHERE email=$1', [email]);
           if (rows.length) { skipped++; continue; }
         }
-        // Deduplicar por apify_id
         if (apifyId) {
           const { rows } = await pool.query('SELECT id FROM leads WHERE apify_id=$1', [apifyId]);
           if (rows.length) { skipped++; continue; }
@@ -140,13 +183,11 @@ module.exports = function(pool) {
           INSERT INTO leads
             (name,nicho,city,country,phone,email,service,status,source,apify_id,last_contact)
           VALUES ($1,$2,$3,$4,$5,$6,$7,'Nuevo','apify',$8,NOW()::date)`,
-          [name, nicho||item.industry||'', city, country, phone, email,
-           service||'', apifyId]
+          [name, nicho||item.industry||'', city, country, phone, email, service||'', apifyId]
         );
         added++;
       }
 
-      // Notificación
       await pool.query(
         `INSERT INTO notificaciones (type,icon,title,message) VALUES ('success','📥','Apify Importado',$1)`,
         [`${added} leads importados, ${skipped} duplicados omitidos`]
@@ -167,6 +208,11 @@ module.exports = function(pool) {
       for (const lead of csvLeads) {
         if (!lead.name) continue;
 
+        // Deduplicar por teléfono
+        if (lead.phone) {
+          const { rows } = await pool.query('SELECT id FROM leads WHERE phone=$1', [lead.phone]);
+          if (rows.length) { skipped++; continue; }
+        }
         // Deduplicar por email
         if (lead.email) {
           const { rows } = await pool.query('SELECT id FROM leads WHERE email=$1', [lead.email]);
@@ -175,11 +221,17 @@ module.exports = function(pool) {
 
         await pool.query(`
           INSERT INTO leads
-            (name,nicho,city,country,phone,email,service,status,source,notes,last_contact)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'csv',$9,NOW()::date)`,
-          [lead.name, lead.nicho||'', lead.city||'', lead.country||'',
-           lead.phone||'', lead.email||'', lead.service||'',
-           lead.status||'Nuevo', lead.notes||'']
+            (name,nicho,ciudad_pais,city,country,phone,email,service,deal_value,
+             status,source,notes,tipo,problema,urgencia,probabilidad_cierre,
+             canal,fuente_verificacion,mensaje,last_contact)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'csv',$11,$12,$13,$14,$15,$16,$17,$18,NOW()::date)`,
+          [lead.name,       lead.nicho||'',              lead.ciudad_pais||'',
+           lead.city||'',   lead.country||'',            lead.phone||'',
+           lead.email||'',  lead.service||'',            lead.deal_value||0,
+           lead.status||'Nuevo',                         lead.notes||'',
+           lead.tipo||'',   lead.problema||'',           lead.urgencia||'',
+           lead.probabilidad_cierre||null,               lead.canal||'',
+           lead.fuente_verificacion||'',                 lead.mensaje||'']
         );
         added++;
       }

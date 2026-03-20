@@ -10,6 +10,11 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ── PostgreSQL ──────────────────────────────────────────────
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL is not set — check Railway environment variables');
+}
+console.log('🔌 DATABASE_URL present:', !!process.env.DATABASE_URL);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL
