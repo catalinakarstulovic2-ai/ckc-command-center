@@ -198,16 +198,68 @@ module.exports = function(pool) {
   });
 
   // ── POST /api/leads/import-csv ──────────────────────────────
+  // Acepta JSON del agente con nombres de columna originales o normalizados.
+  // Formatos soportados:
+  //   { leads: [...] }           wrapper array (formato anterior)
+  //   [...]                      array directo
+  //   { tipo, nombre, ... }      objeto único
+  // Autenticación: header x-api-key debe coincidir con process.env.API_KEY
+  //   (si API_KEY no está definida, solo se permite desde localhost)
   router.post('/import-csv', async (req, res) => {
-    try {
-      const { leads: csvLeads } = req.body;
-      if (!Array.isArray(csvLeads)) return res.status(400).json({ error: 'leads array required' });
+    // ── Auth ─────────────────────────────────────────────────
+    const apiKey = process.env.API_KEY;
+    if (apiKey) {
+      const provided = req.headers['x-api-key'] || '';
+      if (provided !== apiKey) {
+        return res.status(401).json({ error: 'Unauthorized: invalid or missing x-api-key' });
+      }
+    } else {
+      // Sin API_KEY configurada: solo permitir localhost
+      const ip = req.ip || req.connection?.remoteAddress || '';
+      const isLocal = ip === '::1' || ip === '127.0.0.1' || ip.endsWith('127.0.0.1');
+      if (!isLocal) {
+        return res.status(401).json({ error: 'API_KEY not configured — remote access denied' });
+      }
+    }
 
+    try {
+      // ── Normalizar payload ─────────────────────────────────
+      const body = req.body;
+      let raw;
+      if (Array.isArray(body))              raw = body;           // array directo
+      else if (Array.isArray(body.leads))   raw = body.leads;     // wrapper { leads: [...] }
+      else if (body && typeof body === 'object') raw = [body];    // objeto único
+      else return res.status(400).json({ error: 'Payload inválido: se esperaba array, { leads: [] } u objeto' });
+
+      // Normaliza nombres de columna del agente → nombres de BD
+      const normalize = r => ({
+        name:                r.name        || r.nombre               || '',
+        nicho:               r.nicho       || r.niche                || '',
+        ciudad_pais:         r.ciudad_pais || '',
+        city:                r.city        || r.ciudad               || '',
+        country:             r.country     || r.pais                 || '',
+        phone:               r.phone       || r.telefono_contacto    || r.telefono || '',
+        email:               r.email       || '',
+        service:             r.service     || r.servicio             || '',
+        deal_value:          parseFloat(r.deal_value || r.precio_usd || r.valor_cliente || 0) || 0,
+        status:              r.status      || r.estado               || 'Nuevo',
+        notes:               r.notes       || r.notas                || '',
+        tipo:                r.tipo        || '',
+        problema:            r.problema    || '',
+        urgencia:            r.urgencia    || '',
+        probabilidad_cierre: parseFloat(r.probabilidad_cierre || 0) || null,
+        canal:               r.canal       || '',
+        fuente_verificacion: r.fuente_verificacion || r.fuente       || '',
+        mensaje:             r.mensaje     || '',
+      });
+
+      const leads = raw.map(normalize).filter(l => l.name);
+      if (!leads.length) return res.status(400).json({ error: 'No se encontraron leads con nombre válido' });
+
+      // ── Insertar con deduplicación ─────────────────────────
       let added = 0, skipped = 0;
 
-      for (const lead of csvLeads) {
-        if (!lead.name) continue;
-
+      for (const lead of leads) {
         // Deduplicar por teléfono
         if (lead.phone) {
           const { rows } = await pool.query('SELECT id FROM leads WHERE phone=$1', [lead.phone]);
@@ -224,24 +276,24 @@ module.exports = function(pool) {
             (name,nicho,ciudad_pais,city,country,phone,email,service,deal_value,
              status,source,notes,tipo,problema,urgencia,probabilidad_cierre,
              canal,fuente_verificacion,mensaje,last_contact)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'csv',$11,$12,$13,$14,$15,$16,$17,$18,NOW()::date)`,
-          [lead.name,       lead.nicho||'',              lead.ciudad_pais||'',
-           lead.city||'',   lead.country||'',            lead.phone||'',
-           lead.email||'',  lead.service||'',            lead.deal_value||0,
-           lead.status||'Nuevo',                         lead.notes||'',
-           lead.tipo||'',   lead.problema||'',           lead.urgencia||'',
-           lead.probabilidad_cierre||null,               lead.canal||'',
-           lead.fuente_verificacion||'',                 lead.mensaje||'']
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'agente',$11,$12,$13,$14,$15,$16,$17,$18,NOW()::date)`,
+          [lead.name,       lead.nicho,         lead.ciudad_pais,
+           lead.city,       lead.country,       lead.phone,
+           lead.email,      lead.service,       lead.deal_value,
+           lead.status,                         lead.notes,
+           lead.tipo,       lead.problema,      lead.urgencia,
+           lead.probabilidad_cierre,            lead.canal,
+           lead.fuente_verificacion,            lead.mensaje]
         );
         added++;
       }
 
       await pool.query(
-        `INSERT INTO notificaciones (type,icon,title,message) VALUES ('success','📂','CSV Importado',$1)`,
+        `INSERT INTO notificaciones (type,icon,title,message) VALUES ('success','📂','Agente Importó',$1)`,
         [`${added} leads importados, ${skipped} duplicados omitidos`]
       );
 
-      res.json({ added, skipped });
+      res.json({ ok: true, added, skipped, total: leads.length });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 

@@ -214,7 +214,8 @@ select option{background:var(--bg2)}
 .tag-apollo{background:rgba(91,141,239,.1);color:#5b8def;border:1px solid rgba(91,141,239,.2)}
 .tag-csv{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2)}
 .tag-manual{background:rgba(136,136,170,.1);color:#8888aa;border:1px solid rgba(136,136,170,.2)}
-.tag-apify,.tag-apollo,.tag-csv,.tag-manual{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
+.tag-agente{background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2)}
+.tag-apify,.tag-apollo,.tag-csv,.tag-manual,.tag-agente{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
 
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
 
@@ -1714,7 +1715,7 @@ function statusBadge(s) {
   return `<span class="badge badge-${map[s]||'nuevo'}">${s}</span>`;
 }
 function sourceBadge(s) {
-  const map = { apify:'Apify', apollo:'Apollo', csv:'CSV', manual:'Manual', referido:'Referido', instagram:'Instagram' };
+  const map = { apify:'Apify', apollo:'Apollo', csv:'CSV', manual:'Manual', referido:'Referido', instagram:'Instagram', agente:'Agente' };
   return `<span class="badge tag-${s||'manual'}">${map[s]||s||'Manual'}</span>`;
 }
 
